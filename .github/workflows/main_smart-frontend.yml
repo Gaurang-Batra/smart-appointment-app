@@ -1,0 +1,57 @@
+name: Build and Deploy React App to Azure Web App - smart-frontend
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies and build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Upload build folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: frontend/build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: Production
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: build
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'smart-frontend'
+          slot-name: 'Production'
+          package: build
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1756D4BF74F9466ABEB7EDACE178838C }}
