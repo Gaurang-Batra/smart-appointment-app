@@ -1,4 +1,4 @@
-name: Build and Deploy React App to Azure Web App - smart-frontend
+name: Build and deploy React app to Azure Web App - smart-frontend
 
 on:
   push:
@@ -9,8 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout repository
@@ -27,11 +25,16 @@ jobs:
           npm install
           npm run build
 
-      - name: Upload build folder
+      - name: Zip only build contents
+        run: |
+          cd frontend/build
+          zip -r ../../../release.zip .
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact
-          path: frontend/build
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -45,7 +48,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
-          path: build
+
+      - name: Unzip build artifact
+        run: unzip release.zip
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -53,5 +58,5 @@ jobs:
         with:
           app-name: 'smart-frontend'
           slot-name: 'Production'
-          package: build
+          package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1756D4BF74F9466ABEB7EDACE178838C }}
